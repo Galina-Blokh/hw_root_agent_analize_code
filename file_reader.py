@@ -21,10 +21,24 @@ def read_file(base_dir, filename):
     Raises:
         FileNotFoundError: If the file doesn't exist
         PermissionError: If the file can't be read
+        ValueError: If the filename is invalid or attempts path traversal
     """
-    # VULNERABLE: Direct path concatenation without validation
-    # This allows path traversal attacks like ../../../etc/passwd
-    file_path = os.path.join(base_dir, filename)
+    # Ensure the base directory is an absolute path
+    base_dir = os.path.abspath(base_dir)
+
+    # Validate and sanitize the filename
+    safe_filename = os.path.normpath(filename)
+
+    # Ensure the filename doesn't contain path traversal
+    if os.path.isabs(safe_filename) or '..' in safe_filename.split(os.path.sep):
+        raise ValueError("Invalid filename or path traversal attempt detected.")
+
+    # Create the full path
+    file_path = os.path.join(base_dir, safe_filename)
+
+    # Ensure the file path is still within the base directory
+    if not file_path.startswith(base_dir + os.path.sep):
+        raise ValueError("Path traversal detected.")
 
     with open(file_path, 'r') as f:
         return f.read()
